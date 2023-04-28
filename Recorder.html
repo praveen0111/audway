@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>How was your survey?!</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-analytics.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js"></script>
+</head>
+<body>
+    <h1>How was your survey?!</h1>
+	<button id="recordButton">Record</button>
+	<button id="stopButton" disabled>Stop</button>
+	<audio id="audio" controls></audio>
+	<a id="downloadButton" href="#" download="recording.wav" style="display:none;">Download</a>
+	<script>
+		var audioChunks = [];
+		var mediaRecorder;
+		var recordButton = document.getElementById("recordButton");
+		var stopButton = document.getElementById("stopButton");
+		var audio = document.getElementById("audio");
+		var downloadButton = document.getElementById("downloadButton");
+		navigator.mediaDevices.getUserMedia({ audio: true })
+			.then(function(stream) {
+				mediaRecorder = new MediaRecorder(stream);
+				mediaRecorder.ondataavailable = function(e) {
+					audioChunks.push(e.data);
+				};
+				mediaRecorder.onstop = function() {
+					var audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+					audioChunks = [];
+
+					var audioUrl = URL.createObjectURL(audioBlob);
+					audio.src = audioUrl;
+					downloadButton.href = audioUrl;
+					downloadButton.style.display = "block";
+				};
+			})
+			.catch(function(err) {
+				console.error("Error: " + err);
+			});
+
+		recordButton.addEventListener("click", function() {
+			mediaRecorder.start();
+			recordButton.classList.add("recording");
+			stopButton.disabled = false;
+			recordButton.disabled = true;
+			downloadButton.style.display = "none";
+		});
+
+		stopButton.addEventListener("click", function() {
+			mediaRecorder.stop();
+			recordButton.classList.remove("recording");
+			stopButton.disabled = true;
+			recordButton.disabled = false;
+		});
+	</script>
+<script>
+    var firebaseConfig = {
+        apiKey: "AIzaSyDcFVzL0hUeN8bqZOs3ihs2bFwhUbj-aSk",
+        authDomain: "audway-71bb0.firebaseapp.com",
+        projectId: "audway-71bb0",
+        storageBucket: "audway-71bb0.appspot.com",
+        messagingSenderId: "678285544090",
+        appId: "1:678285544090:web:039c387e9e23b75d8eed23",
+        measurementId: "G-H72TPBW1GF"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const firestore = firebase.firestore();
+    const collection = firestore.collection("recordings");
+</script>
+<script>
+    recordButton.addEventListener("click", function() {
+      mediaRecorder.start();
+      recordButton.classList.add("recording");
+      stopButton.disabled = false;
+      recordButton.disabled = true;
+      downloadButton.style.display = "none";
+  
+      setTimeout(function() {
+        mediaRecorder.stop();
+      }, 10000);
+    });
+  
+    mediaRecorder.onstop = function() {
+      var audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+      audioChunks = [];
+  
+      var audioUrl = URL.createObjectURL(audioBlob);
+      audio.src = audioUrl;
+      downloadButton.href = audioUrl;
+      downloadButton.style.display = "block";
+  
+      // Upload the recording to Firebase
+      const filename = Date.now().toString() + ".wav";
+      const uploadTask = firebase.storage().ref().child(filename).put(audioBlob);
+      uploadTask.on(
+        "state_changed",
+        null,
+        function(error) {
+          console.error("Error uploading recording:", error);
+        },
+        function() {
+          // Record the recording URL in Firestore
+          uploadTask.snapshot.ref.getDownloadURL().then(function(url) {
+            collection.add({ url: url });
+          });
+        }
+      );
+    };
+  </script>
+ 
+<script>
+		stopButton.addEventListener("click", function() {
+    setTimeout(function() {
+        window.location.href = "paperburst.html";
+    }, 5000);
+    mediaRecorder.stop();
+    recordButton.classList.remove("recording");
+    stopButton.disabled = true;
+    recordButton.disabled = false;
+});
+	</script>
+</body>
+</html>
+
